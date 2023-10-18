@@ -6,6 +6,9 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 //client request handler function
 const clientRequestHandler = express();
+const database_name = 'brandShop';
+const brands_collection_name = 'brands';
+const products_collection_name = 'products';
 
 //middlewares
 clientRequestHandler.use(cors());
@@ -30,15 +33,37 @@ mongoClient.addListener('connectionCreated', (event) => console.log(event));
 mongoClient.addListener('connectionClosed', (event) => console.error(event));
 
 
-function findDocumentByName(name) {
+function getTechBrandsNamesAndLogos() {
     try {
         mongoClient.connect()
             .then((client) => {
-                const brandShopDB = client.db('brandShop');
-                const brandShopCollection = brandShopDB.collection(name);
+                const brandShopDB = client.db(database_name);
+                const brandShopCollection = brandShopDB.collection(brands_collection_name);
                 brandShopCollection.findOne()
-                    .then((data) => {
-                        console.log(data['name'][0]);
+                    .then((document) => {
+                        brandNames = document;
+                    }, (reason) => {
+                        console.log(reason);
+                    })
+
+            })
+            .catch((reason) => console.log(reason));
+
+    } finally {
+        mongoClient.close();
+    }
+}
+function getTechProduct() {
+    try {
+        mongoClient.connect()
+            .then((client) => {
+                const brandShopDB = client.db(database_name);
+                const brandShopCollection = brandShopDB.collection(products_collection_name);
+                const query = { brand_name: "Apple" };
+                brandShopCollection.findOne(query)
+                    .then((document) => {
+                        console.log(document);
+
                     }, (reason) => {
                         console.log(reason);
                     })
@@ -52,7 +77,17 @@ function findDocumentByName(name) {
 }
 
 
-findDocumentByName('brands');
+getTechBrandsNamesAndLogos();
+getTechProduct();
+
+
+clientRequestHandler.get('/', (req, res) => {
+    res.send("Brand Shop server is running");
+})
+
+clientRequestHandler.get('/brands', (req, res) => {
+    res.send(brandNames);
+})
 
 clientRequestHandler.listen(port, () => {
     console.log(`Brand Shop Server is running at port ${port}`);
