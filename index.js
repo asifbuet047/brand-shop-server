@@ -11,8 +11,9 @@ const clientRequestHandler = express();
 clientRequestHandler.use(cors());
 clientRequestHandler.use(express.json());
 
-//TegXvFh56RlNxeWV
 
+let brandNames = null;
+let brandCountries = null;
 
 
 const uri = `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@cluster0.2jixdw6.mongodb.net/?retryWrites=true&w=majority`;
@@ -25,19 +26,33 @@ const mongoClient = new MongoClient(uri, {
     }
 });
 
-function run() {
+mongoClient.addListener('connectionCreated', (event) => console.log(event));
+mongoClient.addListener('connectionClosed', (event) => console.error(event));
+
+
+function findDocumentByName(name) {
     try {
         mongoClient.connect()
-            .then((client) => console.log("Successfully connect with mongodb"))
+            .then((client) => {
+                const brandShopDB = client.db('brandShop');
+                const brandShopCollection = brandShopDB.collection(name);
+                brandShopCollection.findOne()
+                    .then((data) => {
+                        console.log(data['name'][0]);
+                    }, (reason) => {
+                        console.log(reason);
+                    })
+
+            })
             .catch((reason) => console.log(reason));
 
-    } catch {
+    } finally {
         mongoClient.close();
     }
 }
 
 
-run();
+findDocumentByName('brands');
 
 clientRequestHandler.listen(port, () => {
     console.log(`Brand Shop Server is running at port ${port}`);
