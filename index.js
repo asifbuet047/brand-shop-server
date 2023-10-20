@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotEnv = require('dotenv').config();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //client request handler function
 const clientRequestHandler = express();
@@ -10,6 +10,7 @@ const database_name = 'brandShop';
 const brands_collection_name = 'brands';
 const banner_collection_name = 'banner';
 const products_collection_name = 'products';
+const advertisement_collection_name = 'advertisement';
 
 //middlewares
 clientRequestHandler.use(cors());
@@ -83,6 +84,23 @@ async function serverRunning() {
             const allProductsCursor = productsCollection.find(query);
             const allProducts = await allProductsCursor.toArray();
             response.send(allProducts);
+        })
+
+        clientRequestHandler.get('/advertisement', async (request, response) => {
+            const advertisementCollection = mongoClient.db(database_name).collection(advertisement_collection_name);
+            const advertisementsCursor = advertisementCollection.find();
+            const advertisements = await advertisementsCursor.toArray();
+            console.log(advertisements);
+            response.send(advertisements);
+        })
+
+        clientRequestHandler.get('/productdetails/:id', async (request, response) => {
+            const productsCollection = mongoClient.db(database_name).collection(products_collection_name);
+            const id = request.params.id;
+            const query = { _id: new ObjectId(id) };
+            const product = await productsCollection.findOne(query);
+            console.log(product);
+            response.send(product);
         })
 
     } finally {
