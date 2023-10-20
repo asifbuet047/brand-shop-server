@@ -76,6 +76,15 @@ async function serverRunning() {
             response.send(addedProduct);
         })
 
+        clientRequestHandler.get('/allproducts/:name', async (request, response) => {
+            const productsCollection = mongoClient.db(database_name).collection(products_collection_name);
+            const brand = request.params.name;
+            const query = { brand: brand };
+            const allProductsCursor = productsCollection.find(query);
+            const allProducts = await allProductsCursor.toArray();
+            response.send(allProducts);
+        })
+
     } finally {
 
     }
