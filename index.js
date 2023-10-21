@@ -13,6 +13,7 @@ const products_collection_name = 'products';
 const advertisement_collection_name = 'advertisement';
 const cart_collection_name = 'cart';
 const currentoffer_collection_name = 'currentOffer';
+const mostsold_collection_name = 'mostSold';
 
 
 //middlewares
@@ -138,6 +139,12 @@ async function serverRunning() {
             const currentOfferCollection = mongoClient.db(database_name).collection(currentoffer_collection_name);
             const currentOffer = await currentOfferCollection.findOne();
             response.send(currentOffer);
+        });
+
+        clientRequestHandler.get('/mostsold', async (request, response) => {
+            const mostsoldCollection = mongoClient.db(database_name).collection(mostsold_collection_name);
+            const mostSold = await mostsoldCollection.findOne();
+            response.send(mostSold);
         });
 
 
