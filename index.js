@@ -11,6 +11,7 @@ const brands_collection_name = 'brands';
 const banner_collection_name = 'banner';
 const products_collection_name = 'products';
 const advertisement_collection_name = 'advertisement';
+const cart_collection_name = 'cart';
 
 //middlewares
 clientRequestHandler.use(cors());
@@ -28,8 +29,8 @@ const mongoClient = new MongoClient(uri, {
     }
 });
 
-mongoClient.addListener('connectionCreated', (event) => console.log(event));
-mongoClient.addListener('connectionClosed', (event) => console.error(event));
+// mongoClient.addListener('connectionCreated', (event) => console.log(event));
+// mongoClient.addListener('connectionClosed', (event) => console.error(event));
 
 
 function getTechBrandsNamesAndLogos() {
@@ -72,7 +73,6 @@ async function serverRunning() {
         clientRequestHandler.post('/addproduct', async (request, response) => {
             const productsCollection = mongoClient.db(database_name).collection(products_collection_name);
             const newProduct = request.body;
-            console.log(newProduct);
             const addedProduct = await productsCollection.insertOne(newProduct);
             response.send(addedProduct);
         })
@@ -86,11 +86,19 @@ async function serverRunning() {
             response.send(allProducts);
         })
 
+        clientRequestHandler.get('/product/:id', async (request, response) => {
+            const productsCollection = mongoClient.db(database_name).collection(products_collection_name);
+            const id = request.params.id;
+            const query = { _id: id };
+            const product = await productsCollection.findOne(query);
+            console.log(product);
+            response.send(product);
+        })
+
         clientRequestHandler.get('/advertisement', async (request, response) => {
             const advertisementCollection = mongoClient.db(database_name).collection(advertisement_collection_name);
             const advertisementsCursor = advertisementCollection.find();
             const advertisements = await advertisementsCursor.toArray();
-            console.log(advertisements);
             response.send(advertisements);
         })
 
@@ -99,9 +107,35 @@ async function serverRunning() {
             const id = request.params.id;
             const query = { _id: new ObjectId(id) };
             const product = await productsCollection.findOne(query);
-            console.log(product);
             response.send(product);
         })
+
+        clientRequestHandler.post('/addcart/:id', async (request, response) => {
+            const cartCollection = mongoClient.db(database_name).collection(cart_collection_name);
+            const cart = request.body;
+            const storeCart = await cartCollection.insertOne(cart);
+            response.send(storeCart);
+        })
+        clientRequestHandler.get('/removecart/:id', async (request, response) => {
+            const cartCollection = mongoClient.db(database_name).collection(cart_collection_name);
+            const query = { _id: new ObjectId(request.params.id) };
+            const deletedCartItem = await cartCollection.deleteOne(query);
+            response.send(deletedCartItem);
+
+        })
+
+        clientRequestHandler.get('/cart/:uid', async (request, response) => {
+            const cartCollection = mongoClient.db(database_name).collection(cart_collection_name);
+            const uid = request.params.uid;
+            const query = { userId: uid };
+            const cartedProductsCursor = cartCollection.find(query);
+            const cartedProductsOfUser = await cartedProductsCursor.toArray();
+            console.log(cartedProductsOfUser);
+            response.send(cartedProductsOfUser);
+        })
+
+
+
 
     } finally {
 
