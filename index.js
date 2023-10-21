@@ -33,26 +33,6 @@ const mongoClient = new MongoClient(uri, {
 // mongoClient.addListener('connectionClosed', (event) => console.error(event));
 
 
-function getTechBrandsNamesAndLogos() {
-    try {
-        mongoClient.connect()
-            .then((client) => {
-                const brandShopDB = client.db(database_name);
-                const brandShopCollection = brandShopDB.collection(brands_collection_name);
-                brandShopCollection.findOne()
-                    .then((document) => {
-                        brandNames = document;
-                    }, (reason) => {
-                        console.log(reason);
-                    })
-
-            })
-            .catch((reason) => console.log(reason));
-
-    } finally {
-        mongoClient.close();
-    }
-}
 async function serverRunning() {
     console.log("Server running");
     try {
@@ -91,7 +71,6 @@ async function serverRunning() {
             const id = request.params.id;
             const query = { _id: id };
             const product = await productsCollection.findOne(query);
-            console.log(product);
             response.send(product);
         })
 
@@ -130,11 +109,28 @@ async function serverRunning() {
             const query = { userId: uid };
             const cartedProductsCursor = cartCollection.find(query);
             const cartedProductsOfUser = await cartedProductsCursor.toArray();
-            console.log(cartedProductsOfUser);
             response.send(cartedProductsOfUser);
         })
 
-
+        clientRequestHandler.patch('/updateproduct/:id', async (request, response) => {
+            const productsCollection = mongoClient.db(database_name).collection(products_collection_name);
+            const updateFields = request.body;
+            const productId = request.params.id;
+            const query = { _id: new ObjectId(productId) };
+            const updates = {
+                $set: {
+                    name: updateFields[0],
+                    image: updateFields[1],
+                    type: updateFields[2],
+                    price: updateFields[3],
+                    rating: updateFields[4],
+                    brand: updateFields[5]
+                },
+            };
+            const updatedProduct = await productsCollection.updateOne(query, updates);
+            console.log(updatedProduct);
+            response.send(updatedProduct);
+        })
 
 
     } finally {
