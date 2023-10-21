@@ -12,6 +12,8 @@ const banner_collection_name = 'banner';
 const products_collection_name = 'products';
 const advertisement_collection_name = 'advertisement';
 const cart_collection_name = 'cart';
+const currentoffer_collection_name = 'currentOffer';
+
 
 //middlewares
 clientRequestHandler.use(cors());
@@ -131,6 +133,12 @@ async function serverRunning() {
             console.log(updatedProduct);
             response.send(updatedProduct);
         })
+
+        clientRequestHandler.get('/currentoffer', async (request, response) => {
+            const currentOfferCollection = mongoClient.db(database_name).collection(currentoffer_collection_name);
+            const currentOffer = await currentOfferCollection.findOne();
+            response.send(currentOffer);
+        });
 
 
     } finally {
