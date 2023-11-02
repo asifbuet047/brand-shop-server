@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 
 //client request handler function
 const clientRequestHandler = express();
+const JWT_SECRET = process.env.JWT_SECRECT_KEY;
 const database_name = 'brandShop';
 const brands_collection_name = 'brands';
 const banner_collection_name = 'banner';
@@ -19,8 +20,17 @@ const mostsold_collection_name = 'mostSold';
 
 
 //middlewares
-clientRequestHandler.use(cors());
+clientRequestHandler.use(cors()); // third party mmiddlewares
 clientRequestHandler.use(express.json());
+clientRequestHandler.use('/brands', (req, res, next) => {
+    console.log("App level specific route middleware");
+    next();
+}); //app level custom middlewarae example with specific route
+
+clientRequestHandler.use((req, res, next) => {
+    console.log("App level all routes middleware");
+    next();
+})
 
 
 const uri = `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@cluster0.2jixdw6.mongodb.net/?retryWrites=true&w=majority`;
@@ -33,14 +43,14 @@ const mongoClient = new MongoClient(uri, {
     }
 });
 
-// mongoClient.addListener('connectionCreated', (event) => console.log(event));
-// mongoClient.addListener('connectionClosed', (event) => console.error(event));
 
 
-clientRequestHandler.get('/brands', async (request, response) => {
+clientRequestHandler.get('/brands', (req, res, next) => {
+    console.log("Rote level middleware");
+    next();
+}, async (request, response) => {
     try {
         await mongoClient.connect();
-        
         const brandsCollection = mongoClient.db(database_name).collection(brands_collection_name);
         const brands = await brandsCollection.findOne();
         response.send(brands);
