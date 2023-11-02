@@ -5,6 +5,7 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const crypto = require('node:crypto');
+const cookieParser = require('cookie-parser');
 
 //client request handler function
 const clientRequestHandler = express();
@@ -20,8 +21,12 @@ const mostsold_collection_name = 'mostSold';
 
 
 //middlewares
-clientRequestHandler.use(cors()); // third party mmiddlewares
+clientRequestHandler.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+})); // third party middlewares
 clientRequestHandler.use(express.json());
+clientRequestHandler.use(cookieParser());
 clientRequestHandler.use('/brands', (req, res, next) => {
     console.log("App level specific route middleware");
     next();
@@ -44,7 +49,46 @@ const mongoClient = new MongoClient(uri, {
 });
 
 
+const verifyUser = (request, response, next) => {
+    const token = request.cookies?.ACCESS_TOKEN;
+    console.log(token);
+    if (token) {
+        jwt.verify(token, process.env.JWT_SECRECT_KEY, {
+            algorithms: 'HS512',
+            expiresIn: '1d',
+        }, (error, decoded) => {
+            if (decoded) {
+                console.log(decoded);
+                response.user = decoded;
+                next();
+            } else {
+                console.log(error);
+                response.status(401).send({ message: 'Unauthorized user' });
+            }
+        })
+    } else {
+        return response.status(401).send({ message: 'Unauthorized user' });
+    }
+}
 
+
+clientRequestHandler.post('/api/v1/token', (request, response) => {
+    console.log(request.body);
+    jwt.sign(request.body, process.env.JWT_SECRECT_KEY, {
+        algorithm: 'HS512',
+        expiresIn: '1d',
+    }, (error, token) => {
+        if (token) {
+            response.cookie('ACCESS_TOKEN', token, { httpOnly: true, secure: true, sameSite: 'none' }).send({ user: 'valid', token });
+        } else {
+            response.send({ user: 'unauthorized', error: error });
+        }
+    });
+
+});
+
+
+//example of a route level custom middlewire
 clientRequestHandler.get('/brands', (req, res, next) => {
     console.log("Rote level middleware");
     next();
@@ -191,20 +235,27 @@ clientRequestHandler.get('/removecart/:id', async (request, response) => {
     }
 })
 
-clientRequestHandler.get('/cart/:uid', async (request, response) => {
-    try {
-        await mongoClient.connect();
-        const cartCollection = mongoClient.db(database_name).collection(cart_collection_name);
-        const uid = request.params.uid;
-        const query = { userId: uid };
-        const cartedProductsCursor = cartCollection.find(query);
-        const cartedProductsOfUser = await cartedProductsCursor.toArray();
-        response.send(cartedProductsOfUser);
+clientRequestHandler.get('/cart/:uid', verifyUser, async (request, response) => {
+    const userId = request.params.uid;
+    if (userId === response.user.uid) {
+        try {
+            console.log(userId);
+            console.log(response.user.uid);
+            await mongoClient.connect();
+            const cartCollection = mongoClient.db(database_name).collection(cart_collection_name);
+            const uid = request.params.uid;
+            const query = { userId: uid };
+            const cartedProductsCursor = cartCollection.find(query);
+            const cartedProductsOfUser = await cartedProductsCursor.toArray();
+            response.send(cartedProductsOfUser);
 
-    } catch (error) {
-        console.log(error);
-    } finally {
-        mongoClient.close();
+        } catch (error) {
+            console.log(error);
+        } finally {
+            mongoClient.close();
+        }
+    } else {
+        response.status(401).send({ message: 'Unauthorized' });
     }
 
 })
@@ -269,12 +320,6 @@ clientRequestHandler.get('/mostsold', async (request, response) => {
 });
 
 
-
-
-
-clientRequestHandler.get('/', (req, res) => {
-    res.send("Brand Shop server is running");
-})
 
 
 
